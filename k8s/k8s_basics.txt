@@ -1,0 +1,435 @@
+Kubernetes:
+  - Kubernetes is a container management technology
+  - Developed in Google lab
+  - It is an open source system which helps in creating and managing containerization of application
+  - Automating deployment, scaling of application, and operations of application containers across clusters
+  - Auto-scalable infrastructure
+  - Run application on clusters of physical and virtual machine infrastructure
+  - It helps in moving from host-centric infrastructure to container-centric infrastructure
+  - Loosely coupled infrastructure, where each component can act as a separate unit
+
+Architecture:
+  - Client-Server Architecture
+  - Master on one machine and nodes on other linux machines
+  - Master:
+     - etcd: Stores the configuration information in key value format and consumed via API only
+     - API Server: API server implements an interface and Kubeconfig package along with server side tools can be used for communication
+     - Scheduler: Distributing the workload, workload utilization and allocating pod to nodes
+     - Controller Manager: Collector that gets, changes if required and regulates the state of cluster and performs a task with API server
+  	- replication controller
+  	- endpoint controller
+  	- namespace controller
+  	- service account controller
+	
+  - Node:
+     - docker
+     - Kubelet service: Relaying information to and from control plane service and interacts with etcd store to read configuration details and wright values
+     - kubernetes proxy server: making services available to the external host, manages pods on node, volumes, secrets, creating new containers, health checkup, etc
+		
+Installation:
+  - Docker: On master and all nodes
+  - etcd: On master machine using tar file
+  - Kubernetes: On master and all nodes with git clone 
+  - Set host file in nodes for kube-master and kube-minion
+  - In master and nodes copy certain files from kubernetes folder to /opt/bin/ and /etc/init/ and /etc/init.d/ and /etc/default/
+  - Configure etdc, controller, scheduler and api server on master
+  - Configure the kubelet and kube-proxy conf files on nodes
+  - Restart docker on master and nodes
+  - Check by running /opt/bin/kubectl get minions
+
+Helm:
+  - Kubernetes package manager
+  - Helm Charts helps you define, install, and upgrade complex Kubernetes application
+  - Installation:
+     - curl https://raw.githubusercontent.com/kubernetes/helm/master/scripts/get | bash
+     - kubectl --namespace kube-system create sa tiller
+     - kubectl create clusterrolebinding tiller --clusterrole cluster-admin --serviceaccount=kube-system:tiller
+     - helm init --service-account tiller
+     - helm repo update
+     - kubectl get deploy,svc tiller-deploy -n kube-system	# Confirm if installation is successful
+  - Create deployment: helm install stable/redis-ha
+  - Delete deployment: helm delete stable/redis-ha
+
+Node:
+  - Working machine in Kubernetes cluster which is also known as a minion
+  - They are working units which can be physical, VM, or a cloud instance
+  - To handle multiple nodes the controller manager runs multiple kind of controllers to manage nodes
+  - Kubernetes master registers the node automatically, if –register-node flag is true
+  - Node Controller:
+    - Collection of services running Kubernetes master and continuously monitor node in the cluster
+    - If all the required services are running, then the node is validated and a newly created pod will be assigned to node
+ 
+Service:
+  - A service can be defined as a logical set of pods              
+  - It can be defined as an abstraction on the top of the pod which provides a single IP address and DNS name
+  - It helps pods to scale very easily
+  - A service is a REST object in Kubernetes whose definition can be posted to Kubernetes apiServer
+  - Types:
+     - CusterIP		# Expose service on cluster internal IP
+     - NodePort		# Exposes service on each node's IP:Port
+     - LoadBalancer	# Exposes service on external network
+     - ExternalName	# Maps a name to service and exposes using Kube-dns
+  - Configurations file:
+      apiVersion: v1
+      kind: Service
+      metadata:
+        name: Tutorial_point_service
+      spec:
+        selector:
+          application: "My Application"
+        ports:
+          -name: http
+            protocol: TCP
+            port: 80
+            targetPort: 31999
+          -name:https
+            Protocol: TCP
+            Port: 443
+            targetPort: 31998
+ 
+Pod:
+  - A pod is a collection of containers and its storage inside a node
+  - Types:
+      - Single container pod
+      - Multi container pod
+  - Creation:
+      - Running command: kubectl run <name of pod> --image=<name of the image>
+      - Yaml file:
+          apiVersion: v1
+          kind: Pod
+          metadata:
+            name: Tomcat
+          spec:
+            containers:
+              - name: Tomcat
+                image: tomcat: 8.0
+                ports:
+                   containerPort: 7500
+                imagePullPolicy: Always
+
+              -name: Database
+                image: mongoDB
+                Ports:
+                  containerPort: 7501
+                imagePullPolicy: Always
+  - Run command:  kubectl create –f filename.yml
+ 
+Replication Controller:
+  - It is responsible for making sure that specified number of pod replicas are running
+  - It has the capability to bring up or down the specified no of pod
+  - It is used in time when one wants to make sure that at least one pod is running
+  - Replication controller only supports equality-based selector
+  - Configurations file:
+      apiVersion: v1
+      kind: ReplicationController
+      metadata:
+        name: Tomcat-ReplicationController
+      spec:
+        replicas: 3
+        template:
+          metadata:
+            name: Tomcat-ReplicationController
+          labels:
+            app: App
+            component: neo4j
+          spec:
+            containers:
+              - name: Tomcat
+                image: tomcat: 8.0
+                ports:
+                  - containerPort: 7474
+
+Replica Sets:
+  - Replacement of replication controller
+  - Replica set supports set-based selector
+  - Configurations file:
+      apiVersion: extensions/v1beta1
+      kind: ReplicaSet
+      metadata:
+        name: Tomcat-ReplicaSet
+      spec:
+        replicas: 3
+        selector:
+          matchLables:
+            tier: Backend
+          matchExpression:
+            { key: tier, operation: In, values: [Backend]}
+      template:
+        metadata:
+          lables:
+            app: Tomcat-ReplicaSet
+            tier: Backend
+          labels:
+            app: App
+            component: neo4j
+        spec:
+          containers:
+            - name: Tomcat
+              image: tomcat: 8.0
+            ports:
+              - containerPort: 7474
+ 
+Deployments:
+  - Manage the deployment of replica sets
+  - It uses deployment controller for it's working
+  - Capability to change the deployment midway
+  - Features like matchLabels and selectors
+  - Changes in deployment:
+      - Updating: update the ongoing deployment
+      - Deleting: delete ongoing deployment
+      - Rollback: roll back the deployment (DeploymentSpec.PodTemplateSpec = oldRC.PodTemplateSpec)
+  - Deployment Strategies:
+      - Recreate: Quickly kill all the existing RC and then bring up the new ones results in downtime when old pods are down.
+      - Rolling Update: Slowly brings down the old RC and brings up the new one with few old and new running
+  - Configurations file:
+      - Same as replica set just specify kind as deployment
+  - Create Deployment:
+      - kubectl create –f Deployment.yaml -–record
+  - Get Deployment:
+      - kubectl get deployments
+  - Check status:
+      - kubectl rollout status deployment/Deployment
+  - Update Deployment:
+      - kubectl set image deployment/Deployment tomcat=tomcat:6.0
+  - Rolling back:
+      - kubectl rollout undo deployment/Deployment –to-revision=2
+
+StatefulSets:
+  - StatefulSets represent a set of [Pods] with unique, persistent identities and stable hostnames
+  - State information of pods is stored in persistent volumes
+  - Persistent volumes are defined while creating a statefulset
+  - Configuration file:
+      - apiVersion: apps/v1
+        kind: StatefulSet
+	metadata:
+  	  name: web
+	spec:
+  	  selector:
+    	  matchLabels: 
+	     app: nginx 
+  	template:
+    	  spec:
+      	     terminationGracePeriodSeconds: 10
+      	     containers:
+      		- name: nginx
+        	image: gcr.io/google_containers/nginx-slim:0.8
+        	ports:
+        	  - containerPort: 80
+          	name: web
+        	volumeMounts:
+        	- name: www
+          	mountPath: /usr/share/nginx/html
+  	volumeClaimTemplates:
+  	  - metadata:
+      	       name: www
+    	       spec:
+      		 accessModes: [ "ReadWriteOnce" ]
+      		 resources:
+        	    requests:
+          	       storage: 1Gi
+ 
+Volumes:
+  - Directory which is accessible to the containers in a pod
+  - Multiple types of volumes and the type defines how the volume is created and content
+  - Volume can be shared by all containers in a pod
+  - Multiple volumes can be used by pod
+  - Types:
+      - emptyDir: Created with pod and initially empty, containers can read/write the files
+      - hostPath: mounts a file or directory from the host node’s filesystem into your pod
+      - gcePersistentDisk: mounts a Google Compute Engine (GCE) Persistent Disk into your Pod
+      - awsElasticBlockStore: mounts an Amazon Web Services (AWS) Elastic Block Store into your Pod
+      - azureDiskVolume
+      - nfs: allows an existing NFS (Network File System) to be mounted into your pod
+      - iscsi: allows an existing iSCSI (SCSI over IP) volume to be mounted into your pod
+      - flocker: open-source clustered container data volume manager used for managing data volumes
+      - glusterfs: allows a open-source networked filesystem to be mounted into your pod
+      - rbd: allows a Rados Block Device volume to be mounted into your pod
+      - cephfs:
+      - gitrepo:
+      - secret: used to pass sensitive information, such as passwords, to pods
+      - persistentVolumeClaim: used to mount a PersistentVolume without knowing the details of the particular cloud environment
+      - downwardAPI: mounts a directory and writes the downward API data in plain text files       
+ 
+  - Persistent Volume(PV):
+      - It’s a piece of network storage that has been provisioned by the administrator.
+      - It’s a resource in the cluster which is independent of any individual pod that uses the PV
+      - Configurations file:
+          kind: PersistentVolume
+          apiVersion: v1
+          metadata:
+            name: pv0001
+            labels:
+              type: local
+          spec:
+            capacity:
+              storage: 10Gi
+            accessModes:
+              - ReadWriteOnce
+                  hostPath:
+                  path: "/tmp/data01"
+      - Create PV: kubectl create –f local-01.yaml
+      - Check PV: kubectl get pv
+      - Describe PV: kubectl describe pv pv0001
+
+  - Persistent Volume Claim (PVC):
+      - The storage requested by Kubernetes for its pods is known as PVC.
+      - The user does not need to know the underlying provisioning.
+      - The claims must be created in the same namespace where the pod is created.
+      - Configurations file:
+          kind: PersistentVolumeClaim
+          apiVersion: v1
+          metadata:
+            name: myclaim-1
+          spec:
+            accessModes:
+              - ReadWriteOnce
+            resources:
+              requests:
+                storage: 3Gi
+      - We can create, check and describe PVC as a PV
+ 
+Namespaces:
+  - Namespaces are virtual clusters that can sit on top of the same physical cluster
+  - They provide logical separation between the teams and their environments
+  - Namespaces help pod-to-pod communication using the same namespace
+  - Virtual wall between multiple clusters
+  - Create namespace:
+      apiVersion: v1
+      kind: Namespce
+      metadata
+        name: elk
+  - Control namespace:
+      $ kubectl create –f namespace.yml
+      $ kubectl get namespace
+      $ kubectl get namespace <Namespace name>
+      $ kubectl describe namespace <Namespace name>
+      $ kubectl delete namespace <Namespace name>
+  - Namespace in service:
+      apiVersion: v1
+      kind: Service
+      metadata:
+        name: elasticsearch
+        namespace: elk
+ 
+Labels & Selectors:
+  - Labels are key-value pairs which are attached to pods, replication controller and services
+  - Identifying attributes for objects
+  - Many objects can carry the same labels
+  - Labels selector are core grouping primitive in Kubernetes
+  - Types of selectors:
+      - Equality-based selectors: filtering by key and value
+      - Set-based selectors: filtering of keys according to a set of values
+      - Example Configurations:
+          apiVersion: v1
+          kind: Service
+          metadata:
+            name: sp-neo4j-standalone
+          spec:
+            ports:
+              - port: 7474
+                name: neo4j
+            type: NodePort
+            selector:
+              app: salesplatform
+              component: neo4j
+               
+Images:
+  - Each container in a pod has its Docker image running inside it
+  - In the pod configurations file we can define the image property
+  - Configurations file:
+      apiVersion: v1
+      kind: pod
+      metadata:
+        name: Tesing_for_Image_pull                    # Name of pod
+        spec:
+          containers:
+            - name: neo4j-server                      # Name of container
+              image: ubuntu:16.04                      # Image name and tag as on docker hub
+              imagePullPolicy: Always                # Use same image name always
+              command: ["echo", "SUCCESS"] # Print this msg on success
+  - Run the configurations file:
+      - kubectl create –f Tesing_for_Image_pull
+  - Fetch the log:
+      - kubectl log Tesing_for_Image_pull
+ 
+Jobs:
+  - Create one or more pod and track the success of pods
+  - Ensure that the specified number of pods are completed successfully
+  - Configurations file to create job:
+      apiVersion: v1
+      kind: Job
+      metadata:
+        name: py
+        spec:
+        template:
+          metadata
+          name: py -------> 2
+          spec:
+          containers:
+            - name: py
+              image: python
+              command: ["python", "SUCCESS"]
+              restartPocliy: Never        # Container will not restart automatically
+  - Run the configurations file:
+      - kubectl create –f Tesing_for_Image_pull
+  - Fetch the log:
+      - kubectl log Tesing_for_Image_pull
+
+  - Schedule job
+    - Scheduled job in Kubernetes uses Cronetes
+    - Scheduling a job will run a pod at a specified point of time
+    - A parodic job is created for it which invokes itself automatically
+    - Configurations file:
+        apiVersion: v1
+        kind: Job
+        metadata:
+          name: py
+        spec:
+          schedule: h/30 * * * * ?
+          template:
+            metadata
+            name: py
+            spec:
+            containers:
+              - name: py
+                image: python
+                args:
+                  /bin/sh                 # Enter container in this directory
+                  -c
+                  ps –eaf # Execute this command in container
+        restartPocliy: OnFailure
+
+Secrets:
+  - Secrets can be defined as Kubernetes objects used to store sensitive data with encryption
+  - Ways to create secrets:
+    - From txt files:
+      - kubectl create secret generic tomcat-passwd –-from-file = ./u.txt -–fromfile = ./p.txt
+    - From yml files
+        apiVersion: v1
+        kind: Secret
+        metadata:
+        name: tomcat-pass
+        type: Opaque
+        data:
+            password: <User Password>
+            username: <User Name>
+  - Using secrets:
+    - Environment Variable:
+        env:
+        - name: SECRET_USERNAME
+          valueFrom:
+            secretKeyRef:
+            name: mysecret
+            key: tomcat-pass
+    - Volume
+        spec:
+          volumes:
+            - name: "secretstest"
+         secret:
+            secretName: tomcat-pass
+          containers:
+            - image: tomcat:7.0
+         name: awebserver
+         volumeMounts:
+            - mountPath: "/tmp/mysec"
+            name: "secretstest"

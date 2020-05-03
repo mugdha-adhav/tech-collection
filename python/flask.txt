@@ -1,0 +1,103 @@
+Version: 1.0.2
+Installation: pip install flask
+Developed by: Armin Ronacher
+Based on: WSGI toolkit and Jinja2 template engine
+Description: - Micro framework
+                     - Simple
+                     - extensible
+
+In app.py:
+                from flask import Flask
+                app = Flask(__name__)
+                @app.route('/')
+                def hello():
+                    return "Hello World!"
+                #app.add_url_rule(‘/’, ‘hello’, hello_world)          //alternative
+                if __name__ == '__main__':
+                    app.run()
+
+ Pass string(default), int, float and path in url:
+                @app.route('/hello/<name>')
+                def hello_name(name):
+                                return 'Hello %s!' % name
+                @app.route('/blog/<int:postID>')
+                def show_blog(postID):
+                                return 'Blog Number %d' % postID
+                @app.route('/rev/<float:revNo>')
+                def revision(revNo):
+                                return 'Revision Number %f' % revNo
+                @app.route('/python/')
+                def hello_python():
+                                return 'Hello Python'
+
+                - /python/ == /python and /python/        #canonical url
+                - /flask != /flask/               #will return 404
+
+Redirects:
+                from flask import Flask, redirect, url_for
+                @app.route('/admin')
+                def hello_admin():
+                                return 'Hello Admin'
+                @app.route('/guest/<guest>')
+                def hello_guest(guest):
+                                return 'Hello %s as Guest' % guest
+                @app.route('/user/<name>')
+                def hello_user(name):
+                                if name =='admin':
+                                               return redirect(url_for('hello_admin'))
+                                else:
+                                               return redirect(url_for('hello_guest',guest = name))
+
+HTTP Requests: GET | POST | DELETE | PUT
+                @app.route('/login',methods = ['POST', 'GET'])
+                def login():
+                                if request.method == 'POST':
+                                               user = request.form['nm']            #get POST data
+                                               return redirect(url_for('success',name = user))
+                                else:
+                                               user = request.args.get('nm')      #get GET data
+                                               return redirect(url_for('success',name = user))
+
+Jinja templates:
+                - Return html files from templates folder instead of returning html code.
+                - variable data can be inserted dynamically
+
+                from flask import Flask, render_template
+                @app.route('/')
+                def index(score):
+                                return render_template(‘hello.html’, marks = score)
+
+                {% ... %} for Statements
+                {{ ... }} for Expressions to print to the template output
+                {# ... #} for Comments not included in the template output
+                # ... ## for Line Statements
+
+                eg: <body>
+               {% if marks>50 %}
+               <h1> Your result is pass!</h1>
+               {% else %}
+               <h1>Your result is fail</h1>
+               {% endif %}    
+                </body> 
+
+Static files:
+                - Include static files in the html data from static folder.
+                eg. <head>
+                               <script type = "text/javascript"
+               src = "{{ url_for('static', filename = 'hello.js') }}" ></script>
+                    </head>
+                    <body>
+                               <input type = "button" onclick = "sayHello()" value = "Say Hello" />
+                    </body>
+                - sayHello() function in hello.js which is called from static folder dynamically.
+
+Flask Request Object:
+                - Form | args | cookies | files | method
+
+Flask request get data:
+	- request.data: String format
+	- request.args: key/value in url query
+	- request.form: values from html form
+	- request.files: upload files
+	- request.values: args & form (args preffered)
+	- request.get_json(): post request param with json format

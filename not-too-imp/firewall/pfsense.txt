@@ -1,0 +1,82 @@
+- pfSense is a free and open source firewall and router that also features unified threat management, load balancing, multi WAN, and more
+- Installation
+	1.       Download pfsense from https://www.pfsense.org/download/
+	2.       Unzip the .gz file using unzip or 7zip.
+	3.       Install the image in VirtualBox and create a vdi file for the same.
+	4.       Before rebooting, unmount the pfsense.iso file from devices a optical drives by unticking on image and force unmount.
+	5.       Power on the machine again and install the API package and make necessary configurations.
+	6.       Copy the vdi file from C/Users/Virtualbox VM’s/vm_name/*.vdi and convert using qemu to qcow2 file and deploy in Openstack.
+
+- Configurations
+	1.       Set interfaces
+	2.       Enable sshd
+	3.       Enable DHCP on LAN
+	4.       Check ping
+	5.       Install fauxAPI package
+	6.       Issue: System à Advanced à Firewall / NAT à Disable reply- to : true
+
+- Disable and renable pfsense firewall
+	1. Disable: pfctl –d
+	2. Enable: pfctl –e
+
+- Pfsense API
+	- System: Pfsense (FreeBSD)
+	- Package: FauxAPI - v1.3
+	- Source code Repository: GitHub
+	- Source code URL: https://github.com/ndejong/pfsense_fauxapi.git
+
+- Installing and configuring API
+	1.       set fauxapi_baseurl = 'https://raw.githubusercontent.com/ndejong/pfsense_fauxapi/master/package'
+	2.       set fauxapi_latest=`curl --silent $fauxapi_baseurl/LATEST
+	3.       fetch $fauxapi_baseurl/$fauxapi_latest
+	4.       pkg-static install $fauxapi_latest
+	5.       Add credentials in API package
+		a.       vi /etc/fauxapi/credentials.ini and append following lines
+		b.       For creating random api key and secret, use the following commands
+        		i.      Api_key: echo PFFA`head /dev/urandom | base64 -w0 | tr -d /+= | head -c 20`
+                	ii.      Api_secret: echo `head /dev/urandom | base64 -w0 | tr -d /+= | head -c 60`
+
+- Pfsense Developer shell commands
+	a)       parse_config(true);
+	b)      print_r($config);
+	c)       $config['interfaces']['lan']['ipaddr'] = "dhcp";
+	d)      $config['system']['webgui']['protocol'] = "https";
+	e)      $config['system']['webgui']['nohttpreferercheck'] = true;
+	f)        $config['system']['disablefilter'] = true;
+	g)       write_config();
+	h)      exec
+
+- Useful Commands
+	1.            Config.xml file location: /conf/config.xml
+	2.            Reload web configurator: /etc/rc.restart_webgui
+	3.            Check network ports: netstat –an | grep 80
+	4.            Check all ports: sockstat -4 –l
+	5.            Check firewall rules: pfctl -sr –vv
+	6.            Show routes: netstat -r
+	7.            Add static route: route add -net 70.0.0.0/24 50.0.0.241  
+
+- API
+	Sample Request: curl -X GET --silent --insecure --header "fauxapi-auth: <auth-value>" "https://<host-address>/fauxapi/v1/?action=config_backup_list"
+	1.       config_backup - Causes the system to take a configuration backup and add it to the regular set of system change backups.
+	2.       config_backup_list - Returns a list of the currently available system configuration backups.
+	3.       config_get - Returns the full system configuration as a JSON formatted string
+	4.       config_patch - Patch the system config with a granular piece of new configuration.
+	5.       config_reload - Causes the pfSense system to perform an internal reload of the config.xml file.
+	6.       config_restore - Restores the pfSense system to the named backup configuration.
+	7.       config_set - Sets a full system configuration and (by default) reloads once successfully written and tested.
+	8.       alias_update_urltables - Causes the pfSense host to immediately update any urltable alias entries from their (remote) source URLs.
+	9.       function_call - Call directly a pfSense PHP function with API user supplied parameters.
+	10.   gateway_status - Returns gateway status data.
+		a.       [ monitorip | srcip | name | delay | stddev | loss | status ]
+	11.   interface_stats - Returns statistics and information about an interface.
+	12.   rule_get - Returns the numbered list of loaded pf rules from a pfctl -sr -vv command on the pfSense host.
+	13.   send_event - Performs a pfSense "send_event" command to cause various pfSense system actions.
+	14.   system_reboot - Reboots the pfSense system.
+	15.   system_stats - Returns various useful system stats.
+		a.       [ cpu | mem | uptime | interfacestatistics | datetime | interfacestatus | cpufreq | load_average | mbpuf | mbufpercent ]
+
+- References:
+	1.       https://github.com/ndejong/pfsense_fauxapi
+	2.       https://www.pfsense.org/
+	3.       https://www.netgate.com/solutions/pfsense/features.html
+	4.       https://forum.netgate.com/topic/108433/fauxapi-a-rest-based-api-for-pfsense 
